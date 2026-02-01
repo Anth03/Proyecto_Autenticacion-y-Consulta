@@ -23,75 +23,55 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
 
-
-/**
- * Dependency Injection container at the application level.
- */
 interface AppContainer {
-
     val marsPhotosRepository: MarsPhotosRepository
     val snRepository: SNRepository
 }
 
-/**
- * Implementation for the Dependency Injection container at the application level.
- *
- * Variables are initialized lazily and the same instance is shared across the whole app.
- */
-class DefaultAppContainer(applicationContext: Context) : AppContainer {
+class DefaultAppContainer(private val context: Context) : AppContainer {
+
     private val baseUrl = "https://android-kotlin-fun-mars-server.appspot.com/"
     private val baseUrlSN = "https://sicenet.surguanajuato.tecnm.mx"
-    private var client: OkHttpClient
-    init {
-        client = OkHttpClient()
-        val builder = OkHttpClient.Builder()
 
-        builder.addInterceptor(AddCookiesInterceptor(applicationContext)) // VERY VERY IMPORTANT
-
-        builder.addInterceptor(ReceivedCookiesInterceptor(applicationContext)) // VERY VERY IMPORTANT
-
-        client = builder.build()
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .addInterceptor(AddCookiesInterceptor(context))
+            .addInterceptor(ReceivedCookiesInterceptor(context))
+            .build()
     }
-    /**
-     * Use the Retrofit builder to build a retrofit object using a kotlinx.serialization converter
-     */
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
-        .baseUrl(baseUrl)
-        .build()
 
-    /**
-     * Retrofit para SICENET - No usamos converter XML porque parseamos manualmente
-     * El cliente incluye interceptores para manejo automático de cookies de sesión
-     */
-    private val retrofitSN: Retrofit = Retrofit.Builder()
-        .baseUrl(baseUrlSN)
-        .client(client)
-        .build()
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
+            .baseUrl(baseUrl)
+            .build()
+    }
 
-    //bodyacceso.toRequestBody("text/xml; charset=utf-8".toMediaType())
+    private val retrofitSN: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(baseUrlSN)
+            .client(client)
+            .build()
+    }
 
-    /**
-     * Retrofit service object for creating api calls
-     */
     private val retrofitService: MarsApiService by lazy {
         retrofit.create(MarsApiService::class.java)
     }
 
-    /**
-     * Retrofit service object for creating api calls
-     */
     private val retrofitServiceSN: SICENETWService by lazy {
         retrofitSN.create(SICENETWService::class.java)
     }
-    override val marsPhotosRepository: NetworkMarsPhotosRepository by lazy {
+
+    override val marsPhotosRepository: MarsPhotosRepository by lazy {
         NetworkMarsPhotosRepository(retrofitService)
     }
-    /**
-     * DI implementation for Mars photos repository
-     */
-    override val snRepository: NetworSNRepository by lazy {
+
+    override val snRepository: SNRepository by lazy {
         NetworSNRepository(retrofitServiceSN)
     }
 }

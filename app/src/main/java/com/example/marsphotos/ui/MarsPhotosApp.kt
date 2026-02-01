@@ -26,12 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marsphotos.R
@@ -42,76 +39,60 @@ import com.example.marsphotos.ui.screens.SNViewModel
 
 @Composable
 fun MarsPhotosApp() {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-
-    // ViewModel para SICENET
     val snViewModel: SNViewModel = viewModel(factory = SNViewModel.Factory)
 
-    // Determinar qué pantalla mostrar basándose en el estado
-    val showProfile = when (snViewModel.snUiState) {
-        is SNUiState.LoginSuccess,
-        is SNUiState.ProfileSuccess -> true
-        else -> false
-    }
-
-    // Título dinámico según la pantalla
-    val appBarTitle = if (showProfile) "Perfil Académico" else stringResource(R.string.app_name)
-
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            MarsTopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = appBarTitle
-            )
-        }
-    ) { paddingValues ->
+        topBar = { MarsTopAppBar() }
+    ) { innerPadding ->
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
         ) {
-            if (showProfile) {
-                // Si el login fue exitoso, obtener el perfil y mostrarlo
-                LaunchedEffect(snViewModel.snUiState) {
-                    if (snViewModel.snUiState is SNUiState.LoginSuccess) {
-                        // Obtener el perfil académico después del login
+            when (val state = snViewModel.snUiState) {
+                is SNUiState.NotLoggedIn, is SNUiState.Error -> {
+                    LoginScreen(
+                        snUiState = snViewModel.snUiState,
+                        onLoginClick = { matricula, password ->
+                            snViewModel.login(matricula, password)
+                        }
+                    )
+                }
+                is SNUiState.Loading -> {
+                    LoginScreen(
+                        snUiState = snViewModel.snUiState,
+                        onLoginClick = { _, _ -> }
+                    )
+                }
+                is SNUiState.LoginSuccess -> {
+                    LaunchedEffect(Unit) {
                         snViewModel.getPerfilAcademico()
                     }
+                    ProfileScreen(
+                        snUiState = snViewModel.snUiState,
+                        profile = null,
+                        onLogoutClick = { snViewModel.logout() }
+                    )
                 }
-
-                ProfileScreen(
-                    snUiState = snViewModel.snUiState,
-                    profile = snViewModel.profileStudent,
-                    onLogoutClick = {
-                        // Resetear el estado para volver al login
-                        snViewModel.logout()
-                    }
-                )
-            } else {
-                // Mostrar pantalla de login
-                LoginScreen(
-                    snUiState = snViewModel.snUiState,
-                    onLoginClick = { matricula, password ->
-                        snViewModel.login(matricula, password)
-                    }
-                )
+                is SNUiState.ProfileSuccess -> {
+                    ProfileScreen(
+                        snUiState = snViewModel.snUiState,
+                        profile = state.profile,
+                        onLogoutClick = { snViewModel.logout() }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun MarsTopAppBar(
-    scrollBehavior: TopAppBarScrollBehavior,
-    modifier: Modifier = Modifier,
-    title: String = "SICENET"
-) {
+fun MarsTopAppBar(modifier: Modifier = Modifier) {
     CenterAlignedTopAppBar(
-        scrollBehavior = scrollBehavior,
         title = {
             Text(
-                text = title,
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall,
             )
         },
