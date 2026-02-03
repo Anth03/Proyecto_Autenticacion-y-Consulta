@@ -72,6 +72,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val snRepository: SNRepository by lazy {
-        NetworSNRepository(retrofitServiceSN)
+        NetworSNRepository(retrofitServiceSN, context)
     }
 }

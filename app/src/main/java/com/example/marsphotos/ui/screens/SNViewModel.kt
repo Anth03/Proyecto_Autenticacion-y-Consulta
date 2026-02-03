@@ -52,7 +52,12 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
     fun login(matricula: String, password: String) {
         if (isLoggingIn) return
         isLoggingIn = true
+
+        // Limpiar cookies del usuario anterior antes del nuevo login
+        snRepository.clearCache()
         snUiState = SNUiState.Loading
+
+        Log.d("SNViewModel", "Iniciando login LIMPIO para: $matricula")
 
         viewModelScope.launch {
             try {
@@ -95,7 +100,10 @@ class SNViewModel(private val snRepository: SNRepository) : ViewModel() {
     }
 
     fun logout() {
+        // Limpiar cookies de sesión
+        snRepository.clearCache()
         snUiState = SNUiState.NotLoggedIn
+        Log.d("SNViewModel", "Logout realizado - sesión limpiada")
     }
 
     companion object {

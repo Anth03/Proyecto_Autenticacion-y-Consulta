@@ -37,7 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.marsphotos.model.ProfileStudent
+import kotlinx.serialization.InternalSerializationApi
 
+@OptIn(InternalSerializationApi::class)
 @Composable
 fun ProfileScreen(
     snUiState: SNUiState,
@@ -88,6 +90,7 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(InternalSerializationApi::class)
 @Composable
 private fun ProfileContent(
     profile: ProfileStudent,

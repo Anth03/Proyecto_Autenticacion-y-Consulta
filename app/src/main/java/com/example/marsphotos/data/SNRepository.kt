@@ -15,6 +15,7 @@
  */
 package com.example.marsphotos.data
 
+import android.content.Context
 import android.util.Log
 import com.example.marsphotos.model.AccesoLoginResult
 import com.example.marsphotos.model.ProfileStudent
@@ -37,6 +38,9 @@ interface SNRepository {
 
     /** Obtiene el perfil académico del alumno (requiere login previo) */
     suspend fun getPerfilAcademico(): ProfileStudent
+
+    /** Limpia las cookies de sesión para permitir login con otro usuario */
+    fun clearCache()
 }
 
 
@@ -56,6 +60,10 @@ class DBLocalSNRepository(val apiDB: Any) : SNRepository {
         // Implementar con Room
         return ProfileStudent()
     }
+
+    override fun clearCache() {
+        // Vacío para implementación local
+    }
 }
 
 /**
@@ -63,13 +71,24 @@ class DBLocalSNRepository(val apiDB: Any) : SNRepository {
  * Maneja las peticiones SOAP al web service.
  */
 class NetworSNRepository(
-    private val snApiService: SICENETWService
+    private val snApiService: SICENETWService,
+    private val context: Context
 ) : SNRepository {
 
     // Configuración de JSON para parsear las respuestas
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
+    }
+
+    /**
+     * Limpia las cookies de sesión almacenadas.
+     * Esto permite hacer login con otro usuario.
+     */
+    override fun clearCache() {
+        val prefs = context.getSharedPreferences("cookies", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        Log.d("SICENET", "Cookies de sesión limpiadas")
     }
 
     /**
