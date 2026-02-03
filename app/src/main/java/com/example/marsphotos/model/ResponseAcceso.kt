@@ -1,13 +1,12 @@
 package com.example.marsphotos.model
 
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import org.simpleframework.xml.Element
 import org.simpleframework.xml.Namespace
 import org.simpleframework.xml.NamespaceList
 import org.simpleframework.xml.Root
 
-@InternalSerializationApi @Serializable
+@Serializable
 @Root(name = "soap:Envelope")
 @NamespaceList(
     Namespace(reference = "http://www.w3.org/2001/XMLSchema-instance", prefix = "xsi"),
@@ -20,7 +19,7 @@ data class EnvelopeSobreAcceso(
     val body: BodyAccesoResponse? = null
 )
 
-@InternalSerializationApi @Serializable
+@Serializable
 @Root(name = "soap:Body")
 @NamespaceList(
     Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/"),
@@ -33,7 +32,7 @@ data class BodyAccesoResponse(
     val accesoLoginResponse: AccesoLoginResponse? = null
 )
 
-@InternalSerializationApi @Serializable
+@Serializable
 @Root(name = "accesoLoginResponse")
 @NamespaceList(
     Namespace(reference = "http://tempuri.org/")
