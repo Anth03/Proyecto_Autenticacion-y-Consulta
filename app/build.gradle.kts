@@ -18,6 +18,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -88,6 +89,12 @@ dependencies {
     //implementation("com.subshell.simpleframework:simple-xml:2.9.0")
     implementation("com.squareup.retrofit2:converter-simplexml:2.9.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Room para base de datos local
+    val room_version = "2.6.0"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

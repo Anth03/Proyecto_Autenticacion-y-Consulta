@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, InternalSerializationApi::class)
 
 package com.example.marsphotos.ui
 
@@ -36,6 +36,7 @@ import com.example.marsphotos.ui.screens.LoginScreen
 import com.example.marsphotos.ui.screens.ProfileScreen
 import com.example.marsphotos.ui.screens.SNUiState
 import com.example.marsphotos.ui.screens.SNViewModel
+import kotlinx.serialization.InternalSerializationApi
 
 @Composable
 fun MarsPhotosApp() {

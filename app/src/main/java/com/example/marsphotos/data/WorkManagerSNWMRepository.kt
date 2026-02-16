@@ -37,10 +37,10 @@ class WorkManagerSNWMRepository(ctx: Context): SNWMRepository {
     }
 
     override fun profile() {
-        //TODO("Not yet implemented")
+        //TODO("No implementado")
     }
 
     override fun cargaAcademica() {
-        //TODO("Not yet implemented")
+        //TODO("No implementado")
     }
 }

@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(InternalSerializationApi::class)
+
 package com.example.marsphotos.ui.screens
 
 import android.util.Log
@@ -32,6 +34,7 @@ import com.example.marsphotos.model.ProfileStudent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.InternalSerializationApi
 
 sealed interface SNUiState {
     object Loading : SNUiState

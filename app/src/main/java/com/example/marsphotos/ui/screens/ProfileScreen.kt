@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(InternalSerializationApi::class)
+
 package com.example.marsphotos.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.marsphotos.model.ProfileStudent
+import kotlinx.serialization.InternalSerializationApi
 
 @Composable
 fun ProfileScreen(

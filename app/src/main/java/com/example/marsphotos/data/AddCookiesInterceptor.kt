@@ -6,10 +6,6 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-/**
- * Interceptor que agrega las cookies guardadas a cada petición HTTP.
- * Necesario para mantener la sesión con SICENET después del login.
- */
 class AddCookiesInterceptor(
     private val context: Context
 ) : Interceptor {

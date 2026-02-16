@@ -5,12 +5,6 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
 
-/**
- * Interceptor que captura las cookies de sesión de la respuesta HTTP
- * y las guarda en SharedPreferences.
- * Cuando el login es exitoso, SICENET devuelve una cookie de sesión
- * que debe incluirse en todas las peticiones posteriores.
- */
 class ReceivedCookiesInterceptor(
     private val context: Context
 ) : Interceptor {

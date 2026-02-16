@@ -7,11 +7,6 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
 
-/**
- * Body SOAP para el login/acceso
- * Usamos %s (minúscula) para evitar problemas con caracteres especiales
- * El String.format() manejará correctamente caracteres como $, %, \, etc.
- */
 val bodyAccesoLogin =
     """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -24,15 +19,47 @@ val bodyAccesoLogin =
   </soap:Body>
 </soap:Envelope>""".trimIndent()
 
-/**
- * Body SOAP para obtener el perfil académico del alumno
- * No requiere parámetros, solo la cookie de sesión en el header
- */
 val bodyPerfilAcademico =
     """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <getAlumnoAcademicoWithLineamiento xmlns="http://tempuri.org/" />
+  </soap:Body>
+</soap:Envelope>""".trimIndent()
+
+val bodyCargaAcademica =
+    """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getCargaAcademicaByAlumno xmlns="http://tempuri.org/" />
+  </soap:Body>
+</soap:Envelope>""".trimIndent()
+
+val bodyKardexConPromedio =
+    """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getAllKardexConPromedioByAlumno xmlns="http://tempuri.org/">
+      <aluLineamiento>%d</aluLineamiento>
+    </getAllKardexConPromedioByAlumno>
+  </soap:Body>
+</soap:Envelope>""".trimIndent()
+
+val bodyCalifUnidades =
+    """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getCalifUnidadesByAlumno xmlns="http://tempuri.org/" />
+  </soap:Body>
+</soap:Envelope>""".trimIndent()
+
+val bodyCalifFinal =
+    """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getAllCalifFinalByAlumnos xmlns="http://tempuri.org/">
+      <bytModEducativo>%d</bytModEducativo>
+    </getAllCalifFinalByAlumnos>
   </soap:Body>
 </soap:Envelope>""".trimIndent()
 
@@ -42,11 +69,6 @@ val bodyacceso = bodyAccesoLogin
 
 interface SICENETWService {
 
-    /**
-     * Método para autenticación/login en SICENET
-     * Retorna el resultado del login y guarda la cookie de sesión automáticamente
-     * gracias a ReceivedCookiesInterceptor
-     */
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: http://tempuri.org/accesoLogin"
@@ -54,17 +76,40 @@ interface SICENETWService {
     @POST("/ws/wsalumnos.asmx")
     suspend fun acceso(@Body soap: RequestBody): ResponseBody
 
-    /**
-     * Método para obtener el perfil académico del alumno
-     * Requiere que se haya hecho login previamente (la cookie se envía automáticamente
-     * gracias a AddCookiesInterceptor)
-     */
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: http://tempuri.org/getAlumnoAcademicoWithLineamiento"
     )
     @POST("/ws/wsalumnos.asmx")
     suspend fun getPerfilAcademico(@Body soap: RequestBody): ResponseBody
+
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: http://tempuri.org/getCargaAcademicaByAlumno"
+    )
+    @POST("/ws/wsalumnos.asmx")
+    suspend fun getCargaAcademica(@Body soap: RequestBody): ResponseBody
+
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: http://tempuri.org/getAllKardexConPromedioByAlumno"
+    )
+    @POST("/ws/wsalumnos.asmx")
+    suspend fun getKardexConPromedio(@Body soap: RequestBody): ResponseBody
+
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: http://tempuri.org/getCalifUnidadesByAlumno"
+    )
+    @POST("/ws/wsalumnos.asmx")
+    suspend fun getCalifUnidades(@Body soap: RequestBody): ResponseBody
+
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: http://tempuri.org/getAllCalifFinalByAlumnos"
+    )
+    @POST("/ws/wsalumnos.asmx")
+    suspend fun getCalifFinal(@Body soap: RequestBody): ResponseBody
 
     @GET("/")
     suspend fun con(): ResponseBody

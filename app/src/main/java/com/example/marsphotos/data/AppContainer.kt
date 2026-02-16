@@ -16,8 +16,12 @@
 package com.example.marsphotos.data
 
 import android.content.Context
+import androidx.work.*
+import com.example.marsphotos.data.local.SicenetDatabase
 import com.example.marsphotos.network.MarsApiService
 import com.example.marsphotos.network.SICENETWService
+import com.example.marsphotos.workers.SaveToLocalDbWorker
+import com.example.marsphotos.workers.SicenetSyncWorker
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -28,6 +32,14 @@ import java.util.concurrent.TimeUnit
 interface AppContainer {
     val marsPhotosRepository: MarsPhotosRepository
     val snRepository: SNRepository
+    val localSNRepository: LocalSNRepository
+    val workManager: WorkManager
+
+    /**
+     * Inicia la sincronización de datos de SICENET usando WorkManager
+     * Retorna el ID único del trabajo para monitoreo
+     */
+    fun startSicenetSync(matricula: String, password: String): Operation
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -73,5 +85,58 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val snRepository: SNRepository by lazy {
         NetworSNRepository(retrofitServiceSN, context)
+    }
+
+    override val localSNRepository: LocalSNRepository by lazy {
+        val database = SicenetDatabase.getDatabase(context)
+        LocalSNRepository(database)
+    }
+
+    override val workManager: WorkManager by lazy {
+        WorkManager.getInstance(context)
+    }
+
+    /**
+     * Inicia la cadena de Workers para sincronizar datos de SICENET
+     *
+     * Worker 1 (SicenetSyncWorker): Consulta datos del servicio web
+     * Worker 2 (SaveToLocalDbWorker): Almacena datos en la BD local
+     *
+     * Los workers se ejecutan secuencialmente y solo si hay conexión a internet
+     */
+    override fun startSicenetSync(matricula: String, password: String): Operation {
+        // Constraints: Solo ejecutar si hay conexión a internet
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        // Datos de entrada para el primer worker
+        val inputData = workDataOf(
+            SicenetSyncWorker.KEY_MATRICULA to matricula,
+            SicenetSyncWorker.KEY_PASSWORD to password
+        )
+
+        // Worker 1: Consultar datos de SICENET
+        val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .addTag("sicenet_sync")
+            .build()
+
+        // Worker 2: Guardar en base de datos local
+        val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
+            .addTag("sicenet_save")
+            .build()
+
+        // Encadenar los workers: syncWorkRequest -> saveWorkRequest
+        // El segundo worker recibe los datos de salida del primero
+        return workManager
+            .beginUniqueWork(
+                "sicenet_sync_chain",
+                ExistingWorkPolicy.REPLACE, // Reemplazar trabajos existentes
+                syncWorkRequest
+            )
+            .then(saveWorkRequest)
+            .enqueue()
     }
 }

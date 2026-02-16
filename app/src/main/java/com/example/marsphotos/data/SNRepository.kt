@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(InternalSerializationApi::class)
+
 package com.example.marsphotos.data
 
 import android.content.Context
@@ -22,24 +24,30 @@ import com.example.marsphotos.model.ProfileStudent
 import com.example.marsphotos.network.SICENETWService
 import com.example.marsphotos.network.bodyAccesoLogin
 import com.example.marsphotos.network.bodyPerfilAcademico
+import com.example.marsphotos.network.bodyCargaAcademica
+import com.example.marsphotos.network.bodyKardexConPromedio
+import com.example.marsphotos.network.bodyCalifUnidades
+import com.example.marsphotos.network.bodyCalifFinal
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/**
- * Repository que maneja las operaciones con SICENET.
- */
 interface SNRepository {
-    /** Realiza el login y retorna el resultado como String */
     suspend fun acceso(m: String, p: String): String
 
-    /** Realiza el login y retorna un objeto Usuario */
     suspend fun accesoObjeto(m: String, p: String): AccesoLoginResult
 
-    /** Obtiene el perfil académico del alumno (requiere login previo) */
     suspend fun getPerfilAcademico(): ProfileStudent
 
-    /** Limpia las cookies de sesión para permitir login con otro usuario */
+    suspend fun getCargaAcademica(): String
+
+    suspend fun getKardexConPromedio(lineamiento: Int): String
+
+    suspend fun getCalifUnidades(): String
+
+    suspend fun getCalifFinal(modEducativo: Int): String
+
     fun clearCache()
 }
 
@@ -61,15 +69,26 @@ class DBLocalSNRepository(val apiDB: Any) : SNRepository {
         return ProfileStudent()
     }
 
+    override suspend fun getCargaAcademica(): String {
+        return ""
+    }
+
+    override suspend fun getKardexConPromedio(lineamiento: Int): String {
+        return ""
+    }
+
+    override suspend fun getCalifUnidades(): String {
+        return ""
+    }
+
+    override suspend fun getCalifFinal(modEducativo: Int): String {
+        return ""
+    }
+
     override fun clearCache() {
-        // Vacío para implementación local
     }
 }
 
-/**
- * Implementación de red del Repository para SICENET.
- * Maneja las peticiones SOAP al web service.
- */
 class NetworSNRepository(
     private val snApiService: SICENETWService,
     private val context: Context
@@ -81,24 +100,12 @@ class NetworSNRepository(
         coerceInputValues = true
     }
 
-    /**
-     * Limpia las cookies de sesión almacenadas.
-     * Esto permite hacer login con otro usuario.
-     */
     override fun clearCache() {
         val prefs = context.getSharedPreferences("cookies", Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
         Log.d("SICENET", "Cookies de sesión limpiadas")
     }
 
-    /**
-     * Realiza el login en SICENET.
-     * La cookie de sesión se guarda automáticamente gracias a ReceivedCookiesInterceptor.
-     *
-     * @param m Matrícula del alumno
-     * @param p Contraseña (puede contener caracteres especiales como $, %, \, etc.)
-     * @return String con el resultado del login (JSON dentro del XML)
-     */
     override suspend fun acceso(m: String, p: String): String {
         try {
             // Crear el body SOAP con las credenciales
@@ -125,9 +132,6 @@ class NetworSNRepository(
         }
     }
 
-    /**
-     * Realiza el login y retorna el resultado como objeto AccesoLoginResult.
-     */
     override suspend fun accesoObjeto(m: String, p: String): AccesoLoginResult {
         val resultJson = acceso(m, p)
 
@@ -143,11 +147,6 @@ class NetworSNRepository(
         }
     }
 
-    /**
-     * Obtiene el perfil académico del alumno.
-     * IMPORTANTE: Requiere que se haya realizado login previamente,
-     * ya que usa la cookie de sesión guardada.
-     */
     override suspend fun getPerfilAcademico(): ProfileStudent {
         try {
             Log.d("SICENET", "Obteniendo perfil académico...")
@@ -179,14 +178,94 @@ class NetworSNRepository(
         }
     }
 
-    /**
-     * Extrae el contenido de una etiqueta del XML SOAP response.
-     * El contenido suele ser un JSON string.
-     *
-     * @param xmlResponse La respuesta XML completa
-     * @param tagName El nombre de la etiqueta a extraer (ej: "accesoLoginResult")
-     * @return El contenido de la etiqueta (usualmente JSON)
-     */
+    override suspend fun getCargaAcademica(): String {
+        try {
+            Log.d("SICENET", "Obteniendo carga académica...")
+
+            val response = snApiService.getCargaAcademica(
+                bodyCargaAcademica.toRequestBody("text/xml; charset=utf-8".toMediaType())
+            )
+
+            val responseString = response.string()
+            Log.d("SICENET", "Respuesta carga académica: $responseString")
+
+            val result = extractResultFromSoap(responseString, "getCargaAcademicaByAlumnoResult")
+            Log.d("SICENET", "Carga académica extraída: $result")
+
+            return result
+        } catch (e: Exception) {
+            Log.e("SICENET", "Error obteniendo carga académica: ${e.message}", e)
+            throw e
+        }
+    }
+
+    override suspend fun getKardexConPromedio(lineamiento: Int): String {
+        try {
+            Log.d("SICENET", "Obteniendo kardex con promedio (lineamiento: $lineamiento)...")
+
+            val soapBody = String.format(bodyKardexConPromedio, lineamiento)
+
+            val response = snApiService.getKardexConPromedio(
+                soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType())
+            )
+
+            val responseString = response.string()
+            Log.d("SICENET", "Respuesta kardex: $responseString")
+
+            val result = extractResultFromSoap(responseString, "getAllKardexConPromedioByAlumnoResult")
+            Log.d("SICENET", "Kardex extraído: $result")
+
+            return result
+        } catch (e: Exception) {
+            Log.e("SICENET", "Error obteniendo kardex: ${e.message}", e)
+            throw e
+        }
+    }
+
+    override suspend fun getCalifUnidades(): String {
+        try {
+            Log.d("SICENET", "Obteniendo calificaciones por unidad...")
+
+            val response = snApiService.getCalifUnidades(
+                bodyCalifUnidades.toRequestBody("text/xml; charset=utf-8".toMediaType())
+            )
+
+            val responseString = response.string()
+            Log.d("SICENET", "Respuesta calificaciones unidades: $responseString")
+
+            val result = extractResultFromSoap(responseString, "getCalifUnidadesByAlumnoResult")
+            Log.d("SICENET", "Calificaciones unidades extraídas: $result")
+
+            return result
+        } catch (e: Exception) {
+            Log.e("SICENET", "Error obteniendo calificaciones por unidad: ${e.message}", e)
+            throw e
+        }
+    }
+
+    override suspend fun getCalifFinal(modEducativo: Int): String {
+        try {
+            Log.d("SICENET", "Obteniendo calificaciones finales (modEducativo: $modEducativo)...")
+
+            val soapBody = String.format(bodyCalifFinal, modEducativo)
+
+            val response = snApiService.getCalifFinal(
+                soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType())
+            )
+
+            val responseString = response.string()
+            Log.d("SICENET", "Respuesta calificaciones finales: $responseString")
+
+            val result = extractResultFromSoap(responseString, "getAllCalifFinalByAlumnosResult")
+            Log.d("SICENET", "Calificaciones finales extraídas: $result")
+
+            return result
+        } catch (e: Exception) {
+            Log.e("SICENET", "Error obteniendo calificaciones finales: ${e.message}", e)
+            throw e
+        }
+    }
+
     private fun extractResultFromSoap(xmlResponse: String, tagName: String): String {
         return try {
             val startTag = "<$tagName>"

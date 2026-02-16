@@ -1,13 +1,10 @@
 package com.example.marsphotos.model
 
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 
-/**
- * Modelo que representa el perfil académico del alumno de SICENET.
- * Los campos se mapean desde la respuesta JSON que viene dentro del XML SOAP.
- * Nombres exactos de SICENET: cdtosAcumulados, cdtosActuales, semActual, etc.
- */
-@Serializable
+
+@InternalSerializationApi @Serializable
 data class ProfileStudent(
     val matricula: String = "",
     val nombre: String = "",
@@ -31,11 +28,7 @@ data class ProfileStudent(
     val creditosActuales: Int get() = cdtosActuales
 }
 
-/**
- * Modelo para el resultado del login de SICENET.
- * Contiene información básica del usuario autenticado.
- */
-@Serializable
+@InternalSerializationApi @Serializable
 data class AccesoLoginResult(
     val acceso: Boolean = false,
     val matricula: String = "",
