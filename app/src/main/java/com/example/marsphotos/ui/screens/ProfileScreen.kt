@@ -46,6 +46,10 @@ fun ProfileScreen(
     snUiState: SNUiState,
     profile: ProfileStudent?,
     onLogoutClick: () -> Unit,
+    onCargaAcademicaClick: () -> Unit = {},
+    onKardexClick: () -> Unit = {},
+    onCalifUnidadesClick: () -> Unit = {},
+    onCalifFinalClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -64,7 +68,14 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
             is SNUiState.ProfileSuccess -> {
-                ProfileContent(profile = snUiState.profile, onLogoutClick = onLogoutClick)
+                ProfileContent(
+                    profile = snUiState.profile,
+                    onLogoutClick = onLogoutClick,
+                    onCargaAcademicaClick = onCargaAcademicaClick,
+                    onKardexClick = onKardexClick,
+                    onCalifUnidadesClick = onCalifUnidadesClick,
+                    onCalifFinalClick = onCalifFinalClick
+                )
             }
             is SNUiState.LoginSuccess -> {
                 Spacer(modifier = Modifier.weight(1f))
@@ -84,7 +95,14 @@ fun ProfileScreen(
             }
             else -> {
                 if (profile != null) {
-                    ProfileContent(profile = profile, onLogoutClick = onLogoutClick)
+                    ProfileContent(
+                        profile = profile,
+                        onLogoutClick = onLogoutClick,
+                        onCargaAcademicaClick = onCargaAcademicaClick,
+                        onKardexClick = onKardexClick,
+                        onCalifUnidadesClick = onCalifUnidadesClick,
+                        onCalifFinalClick = onCalifFinalClick
+                    )
                 }
             }
         }
@@ -94,7 +112,11 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     profile: ProfileStudent,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onCargaAcademicaClick: () -> Unit = {},
+    onKardexClick: () -> Unit = {},
+    onCalifUnidadesClick: () -> Unit = {},
+    onCalifFinalClick: () -> Unit = {}
 ) {
     Text(
         text = profile.nombre.ifEmpty { "Alumno" },
@@ -131,6 +153,50 @@ private fun ProfileContent(
             Spacer(modifier = Modifier.height(8.dp))
             InfoRow("Acumulados", profile.creditosAcumulados.toString())
             InfoRow("Actuales", profile.creditosActuales.toString())
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // Menú de opciones
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Consultas", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onCargaAcademicaClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Carga Académica")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onKardexClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Kardex")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onCalifUnidadesClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calificaciones por Unidad")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onCalifFinalClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calificaciones Finales")
+            }
         }
     }
 

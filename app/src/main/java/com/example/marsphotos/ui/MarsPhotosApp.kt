@@ -28,19 +28,31 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marsphotos.R
-import com.example.marsphotos.ui.screens.LoginScreen
-import com.example.marsphotos.ui.screens.ProfileScreen
-import com.example.marsphotos.ui.screens.SNUiState
-import com.example.marsphotos.ui.screens.SNViewModel
+import com.example.marsphotos.ui.screens.*
 import kotlinx.serialization.InternalSerializationApi
+
+enum class SicenetScreen {
+    Login,
+    Profile,
+    CargaAcademica,
+    Kardex,
+    CalifUnidades,
+    CalifFinal
+}
 
 @Composable
 fun MarsPhotosApp() {
     val snViewModel: SNViewModel = viewModel(factory = SNViewModel.Factory)
+    var currentScreen by remember { mutableStateOf(SicenetScreen.Login) }
+    var currentProfile by remember { mutableStateOf<com.example.marsphotos.model.ProfileStudent?>(null) }
 
     Scaffold(
         topBar = { MarsTopAppBar() }
@@ -51,36 +63,108 @@ fun MarsPhotosApp() {
                 .padding(innerPadding),
             color = MaterialTheme.colorScheme.background
         ) {
-            when (val state = snViewModel.snUiState) {
-                is SNUiState.NotLoggedIn, is SNUiState.Error -> {
-                    LoginScreen(
+            when (currentScreen) {
+                SicenetScreen.Login -> {
+                    when (val state = snViewModel.snUiState) {
+                        is SNUiState.NotLoggedIn, is SNUiState.Error, is SNUiState.Loading -> {
+                            LoginScreen(
+                                snUiState = snViewModel.snUiState,
+                                onLoginClick = { matricula, password ->
+                                    snViewModel.login(matricula, password)
+                                }
+                            )
+                        }
+                        is SNUiState.LoginSuccess -> {
+                            LaunchedEffect(Unit) {
+                                snViewModel.getPerfilAcademico()
+                            }
+                            LoginScreen(
+                                snUiState = snViewModel.snUiState,
+                                onLoginClick = { _, _ -> }
+                            )
+                        }
+                        is SNUiState.ProfileSuccess -> {
+                            currentProfile = state.profile
+                            currentScreen = SicenetScreen.Profile
+                        }
+                        else -> {
+                            LoginScreen(
+                                snUiState = snViewModel.snUiState,
+                                onLoginClick = { matricula, password ->
+                                    snViewModel.login(matricula, password)
+                                }
+                            )
+                        }
+                    }
+                }
+
+                SicenetScreen.Profile -> {
+                    ProfileScreen(
                         snUiState = snViewModel.snUiState,
-                        onLoginClick = { matricula, password ->
-                            snViewModel.login(matricula, password)
+                        profile = currentProfile,
+                        onLogoutClick = {
+                            snViewModel.logout()
+                            currentScreen = SicenetScreen.Login
+                            currentProfile = null
+                        },
+                        onCargaAcademicaClick = {
+                            currentProfile?.let {
+                                snViewModel.getCargaAcademica()
+                                currentScreen = SicenetScreen.CargaAcademica
+                            }
+                        },
+                        onKardexClick = {
+                            currentProfile?.let {
+                                snViewModel.getKardex(it.lineamiento)
+                                currentScreen = SicenetScreen.Kardex
+                            }
+                        },
+                        onCalifUnidadesClick = {
+                            snViewModel.getCalifUnidades()
+                            currentScreen = SicenetScreen.CalifUnidades
+                        },
+                        onCalifFinalClick = {
+                            currentProfile?.let {
+                                snViewModel.getCalifFinal(it.modEducativo)
+                                currentScreen = SicenetScreen.CalifFinal
+                            }
                         }
                     )
                 }
-                is SNUiState.Loading -> {
-                    LoginScreen(
+
+                SicenetScreen.CargaAcademica -> {
+                    CargaAcademicaScreen(
                         snUiState = snViewModel.snUiState,
-                        onLoginClick = { _, _ -> }
+                        onBackClick = {
+                            currentScreen = SicenetScreen.Profile
+                        }
                     )
                 }
-                is SNUiState.LoginSuccess -> {
-                    LaunchedEffect(Unit) {
-                        snViewModel.getPerfilAcademico()
-                    }
-                    ProfileScreen(
+
+                SicenetScreen.Kardex -> {
+                    KardexScreen(
                         snUiState = snViewModel.snUiState,
-                        profile = null,
-                        onLogoutClick = { snViewModel.logout() }
+                        onBackClick = {
+                            currentScreen = SicenetScreen.Profile
+                        }
                     )
                 }
-                is SNUiState.ProfileSuccess -> {
-                    ProfileScreen(
+
+                SicenetScreen.CalifUnidades -> {
+                    CalifUnidadesScreen(
                         snUiState = snViewModel.snUiState,
-                        profile = state.profile,
-                        onLogoutClick = { snViewModel.logout() }
+                        onBackClick = {
+                            currentScreen = SicenetScreen.Profile
+                        }
+                    )
+                }
+
+                SicenetScreen.CalifFinal -> {
+                    CalifFinalScreen(
+                        snUiState = snViewModel.snUiState,
+                        onBackClick = {
+                            currentScreen = SicenetScreen.Profile
+                        }
                     )
                 }
             }

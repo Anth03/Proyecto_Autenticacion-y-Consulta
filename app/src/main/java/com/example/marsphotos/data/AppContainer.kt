@@ -87,9 +87,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         NetworSNRepository(retrofitServiceSN, context)
     }
 
+    private val sicenetDatabase: SicenetDatabase by lazy {
+        SicenetDatabase.getDatabase(context)
+    }
+
     override val localSNRepository: LocalSNRepository by lazy {
-        val database = SicenetDatabase.getDatabase(context)
-        LocalSNRepository(database)
+        LocalSNRepository(sicenetDatabase.sicenetDao())
     }
 
     override val workManager: WorkManager by lazy {
