@@ -9,10 +9,6 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.marsphotos.MarsPhotosApplication
 
-/**
- * Worker para consultar datos desde la API de SICENET
- * Este es el primer worker en la cadena
- */
 class SicenetSyncWorker(
     context: Context,
     params: WorkerParameters
@@ -21,6 +17,9 @@ class SicenetSyncWorker(
     companion object {
         const val KEY_MATRICULA = "MATRICULA"
         const val KEY_PASSWORD = "PASSWORD"
+        const val KEY_QUERY_TYPE = "QUERY_TYPE"
+        const val KEY_LINEAMIENTO = "LINEAMIENTO"
+        const val KEY_MOD_EDUCATIVO = "MOD_EDUCATIVO"
     }
 
     private val TAG = "SicenetSyncWorker"
@@ -31,14 +30,31 @@ class SicenetSyncWorker(
             val repository = app.container.snRepository
 
             // Obtener tipo de consulta
-            val queryType = inputData.getString("QUERY_TYPE") ?: "PROFILE"
-            val matricula = inputData.getString("MATRICULA") ?: ""
+            val queryType = inputData.getString(KEY_QUERY_TYPE) ?: "PROFILE"
+            val matricula = inputData.getString(KEY_MATRICULA) ?: ""
 
             Log.d(TAG, "Iniciando sincronización: $queryType para $matricula")
 
             val resultData = when (queryType) {
+                "LOGIN_AND_PROFILE" -> {
+                    // Primero hacer login
+                    val password = inputData.getString(KEY_PASSWORD) ?: ""
+                    val loginResult = repository.acceso(matricula, password)
+                    Log.d(TAG, "Login completado: $loginResult")
+
+                    // Luego obtener perfil
+                    val profileResult = repository.getPerfilAcademico()
+                    Log.d(TAG, "Perfil obtenido: ${profileResult.nombre}")
+
+                    workDataOf(
+                        "PROFILE_JSON" to profileResult.toJson(),
+                        "MATRICULA" to profileResult.matricula,
+                        "LOGIN_SUCCESS" to true
+                    )
+                }
+
                 "LOGIN" -> {
-                    val password = inputData.getString("PASSWORD") ?: ""
+                    val password = inputData.getString(KEY_PASSWORD) ?: ""
                     val loginResult = repository.acceso(matricula, password)
                     workDataOf(
                         "LOGIN_RESULT" to loginResult,
@@ -63,7 +79,7 @@ class SicenetSyncWorker(
                 }
 
                 "KARDEX" -> {
-                    val lineamiento = inputData.getInt("LINEAMIENTO", 3)
+                    val lineamiento = inputData.getInt(KEY_LINEAMIENTO, 3)
                     val kardexResult = repository.getKardexConPromedio(lineamiento)
                     workDataOf(
                         "KARDEX_JSON" to kardexResult,
@@ -80,7 +96,7 @@ class SicenetSyncWorker(
                 }
 
                 "CALIF_FINAL" -> {
-                    val modEducativo = inputData.getInt("MOD_EDUCATIVO", 2)
+                    val modEducativo = inputData.getInt(KEY_MOD_EDUCATIVO, 2)
                     val califResult = repository.getCalifFinal(modEducativo)
                     workDataOf(
                         "CALIF_FINAL_JSON" to califResult,

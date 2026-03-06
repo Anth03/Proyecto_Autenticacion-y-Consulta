@@ -27,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +49,8 @@ enum class SicenetScreen {
 
 @Composable
 fun MarsPhotosApp() {
-    val snViewModel: SNViewModel = viewModel(factory = SNViewModel.Factory)
+    // Usar el ViewModel con WorkManager para sincronización en segundo plano
+    val snViewModel: SNViewModelWithWorkers = viewModel(factory = SNViewModelWithWorkers.Factory)
     var currentScreen by remember { mutableStateOf(SicenetScreen.Login) }
     var currentProfile by remember { mutableStateOf<com.example.marsphotos.model.ProfileStudent?>(null) }
 
@@ -70,20 +70,13 @@ fun MarsPhotosApp() {
                             LoginScreen(
                                 snUiState = snViewModel.snUiState,
                                 onLoginClick = { matricula, password ->
+                                    // Usa WorkManager para login + perfil (Punto 2a)
                                     snViewModel.login(matricula, password)
                                 }
                             )
                         }
-                        is SNUiState.LoginSuccess -> {
-                            LaunchedEffect(Unit) {
-                                snViewModel.getPerfilAcademico()
-                            }
-                            LoginScreen(
-                                snUiState = snViewModel.snUiState,
-                                onLoginClick = { _, _ -> }
-                            )
-                        }
                         is SNUiState.ProfileSuccess -> {
+                            // El Worker completó y el perfil se cargó de BD local
                             currentProfile = state.profile
                             currentScreen = SicenetScreen.Profile
                         }
@@ -108,23 +101,25 @@ fun MarsPhotosApp() {
                             currentProfile = null
                         },
                         onCargaAcademicaClick = {
-                            currentProfile?.let {
-                                snViewModel.getCargaAcademica()
-                                currentScreen = SicenetScreen.CargaAcademica
-                            }
+                            // Usa WorkManager para carga académica (Punto 2b)
+                            snViewModel.getCargaAcademica()
+                            currentScreen = SicenetScreen.CargaAcademica
                         },
                         onKardexClick = {
                             currentProfile?.let {
+                                // Usa WorkManager para kardex (Punto 2b)
                                 snViewModel.getKardex(it.lineamiento)
                                 currentScreen = SicenetScreen.Kardex
                             }
                         },
                         onCalifUnidadesClick = {
+                            // Usa WorkManager para calificaciones unidades (Punto 2b)
                             snViewModel.getCalifUnidades()
                             currentScreen = SicenetScreen.CalifUnidades
                         },
                         onCalifFinalClick = {
                             currentProfile?.let {
+                                // Usa WorkManager para calificaciones finales (Punto 2b)
                                 snViewModel.getCalifFinal(it.modEducativo)
                                 currentScreen = SicenetScreen.CalifFinal
                             }

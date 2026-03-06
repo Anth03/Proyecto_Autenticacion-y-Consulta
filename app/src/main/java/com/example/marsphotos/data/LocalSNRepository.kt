@@ -62,10 +62,22 @@ class LocalSNRepository(private val dao: SicenetDao) {
         return dao.getCargaAcademica(matricula)
     }
 
-    suspend fun saveCargaAcademica(cargaList: List<CargaAcademicaEntity>) {
+    suspend fun saveCargaAcademica(cargaList: List<CargaAcademicaEntity>, matricula: String? = null) {
         try {
-            dao.insertCargaAcademica(cargaList)
-            Log.d("LocalSNRepository", "Carga académica guardada: ${cargaList.size} materias")
+            // Obtener matrícula del parámetro o de la lista
+            val mat = matricula ?: cargaList.firstOrNull()?.matricula ?: ""
+
+            // SIEMPRE eliminar datos anteriores para evitar duplicados
+            if (mat.isNotEmpty()) {
+                dao.deleteCargaAcademica(mat)
+                Log.d("LocalSNRepository", "Carga académica anterior eliminada para: $mat")
+            }
+
+            // Insertar nuevos datos
+            if (cargaList.isNotEmpty()) {
+                dao.insertCargaAcademica(cargaList)
+            }
+            Log.d("LocalSNRepository", "Carga académica guardada: ${cargaList.size} materias para $mat")
         } catch (e: Exception) {
             Log.e("LocalSNRepository", "Error guardando carga académica: ${e.message}", e)
             throw e
@@ -82,10 +94,22 @@ class LocalSNRepository(private val dao: SicenetDao) {
         return dao.getKardex(matricula)
     }
 
-    suspend fun saveKardex(kardexList: List<KardexEntity>) {
+    suspend fun saveKardex(kardexList: List<KardexEntity>, matricula: String? = null) {
         try {
-            dao.insertKardex(kardexList)
-            Log.d("LocalSNRepository", "Kardex guardado: ${kardexList.size} materias")
+            // Obtener matrícula del parámetro o de la lista
+            val mat = matricula ?: kardexList.firstOrNull()?.matricula ?: ""
+
+            // SIEMPRE eliminar datos anteriores para evitar duplicados
+            if (mat.isNotEmpty()) {
+                dao.deleteKardex(mat)
+                Log.d("LocalSNRepository", "Kardex anterior eliminado para: $mat")
+            }
+
+            // Insertar nuevos datos
+            if (kardexList.isNotEmpty()) {
+                dao.insertKardex(kardexList)
+            }
+            Log.d("LocalSNRepository", "Kardex guardado: ${kardexList.size} materias para $mat")
         } catch (e: Exception) {
             Log.e("LocalSNRepository", "Error guardando kardex: ${e.message}", e)
             throw e
@@ -102,10 +126,22 @@ class LocalSNRepository(private val dao: SicenetDao) {
         return dao.getCalificacionesUnidad(matricula)
     }
 
-    suspend fun saveCalifUnidades(califList: List<CalificacionUnidadEntity>) {
+    suspend fun saveCalifUnidades(califList: List<CalificacionUnidadEntity>, matricula: String? = null) {
         try {
-            dao.insertCalificacionesUnidad(califList)
-            Log.d("LocalSNRepository", "Calificaciones por unidad guardadas: ${califList.size}")
+            // Obtener matrícula del parámetro o de la lista
+            val mat = matricula ?: califList.firstOrNull()?.matricula ?: ""
+
+            // SIEMPRE eliminar datos anteriores para evitar duplicados
+            if (mat.isNotEmpty()) {
+                dao.deleteCalificacionesUnidad(mat)
+                Log.d("LocalSNRepository", "Calificaciones unidad anteriores eliminadas para: $mat")
+            }
+
+            // Insertar nuevos datos
+            if (califList.isNotEmpty()) {
+                dao.insertCalificacionesUnidad(califList)
+            }
+            Log.d("LocalSNRepository", "Calificaciones por unidad guardadas: ${califList.size} para $mat")
         } catch (e: Exception) {
             Log.e("LocalSNRepository", "Error guardando calificaciones unidad: ${e.message}", e)
             throw e
@@ -122,10 +158,22 @@ class LocalSNRepository(private val dao: SicenetDao) {
         return dao.getCalificacionesFinal(matricula)
     }
 
-    suspend fun saveCalifFinal(califList: List<CalificacionFinalEntity>) {
+    suspend fun saveCalifFinal(califList: List<CalificacionFinalEntity>, matricula: String? = null) {
         try {
-            dao.insertCalificacionesFinal(califList)
-            Log.d("LocalSNRepository", "Calificaciones finales guardadas: ${califList.size}")
+            // Obtener matrícula del parámetro o de la lista
+            val mat = matricula ?: califList.firstOrNull()?.matricula ?: ""
+
+            // SIEMPRE eliminar datos anteriores para evitar duplicados
+            if (mat.isNotEmpty()) {
+                dao.deleteCalificacionesFinal(mat)
+                Log.d("LocalSNRepository", "Calificaciones finales anteriores eliminadas para: $mat")
+            }
+
+            // Insertar nuevos datos
+            if (califList.isNotEmpty()) {
+                dao.insertCalificacionesFinal(califList)
+            }
+            Log.d("LocalSNRepository", "Calificaciones finales guardadas: ${califList.size} para $mat")
         } catch (e: Exception) {
             Log.e("LocalSNRepository", "Error guardando calificaciones finales: ${e.message}", e)
             throw e
