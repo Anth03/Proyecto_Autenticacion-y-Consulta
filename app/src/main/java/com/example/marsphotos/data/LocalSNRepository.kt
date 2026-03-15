@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.map
 class LocalSNRepository(private val dao: SicenetDao) {
 
     // ============ Profile ============
-
     suspend fun getPerfilAcademicoByMatricula(matricula: String): ProfileStudent? {
         val entity = dao.getProfileSync(matricula)
         return entity?.toProfileStudent()

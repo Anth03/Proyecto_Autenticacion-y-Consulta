@@ -35,7 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marsphotos.R
-import com.example.marsphotos.ui.screens.*
+import com.example.marsphotos.ui.screens.SNUiState
+import com.example.marsphotos.ui.screens.SNViewModelWithWorkers
+import com.example.marsphotos.ui.screens.LoginScreen
+import com.example.marsphotos.ui.screens.ProfileScreen
+import com.example.marsphotos.ui.screens.CargaAcademicaScreen
+import com.example.marsphotos.ui.screens.KardexScreen
+import com.example.marsphotos.ui.screens.CalifUnidadesScreen
+import com.example.marsphotos.ui.screens.CalifFinalScreen
 import kotlinx.serialization.InternalSerializationApi
 
 enum class SicenetScreen {

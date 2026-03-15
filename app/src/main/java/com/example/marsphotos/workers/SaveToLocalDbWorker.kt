@@ -37,7 +37,6 @@ class SaveToLocalDbWorker(
                 Log.e(TAG, "ERROR: Matrícula vacía - no se puede guardar correctamente")
             }
 
-            // Determinar qué datos guardar basado en las claves de entrada
             when {
                 inputData.keyValueMap.containsKey("PROFILE_JSON") -> {
                     val profileJson = inputData.getString("PROFILE_JSON") ?: ""
@@ -92,8 +91,6 @@ class SaveToLocalDbWorker(
             }
 
             val items = mutableListOf<CargaAcademicaEntity>()
-
-            // El JSON puede ser un objeto con una propiedad o un array directo
             val jsonArray = if (jsonString.trim().startsWith("{")) {
                 val jsonObj = org.json.JSONObject(jsonString)
                 jsonObj.optJSONArray("lstCarga")
@@ -138,8 +135,6 @@ class SaveToLocalDbWorker(
             }
 
             val items = mutableListOf<KardexEntity>()
-
-            // El JSON puede ser un objeto con lstKardex o un array directo
             val jsonArray = if (jsonString.trim().startsWith("{")) {
                 val jsonObj = org.json.JSONObject(jsonString)
                 jsonObj.optJSONArray("lstKardex") ?: org.json.JSONArray()
@@ -186,7 +181,6 @@ class SaveToLocalDbWorker(
             }
 
             val items = mutableListOf<CalificacionUnidadEntity>()
-
             val jsonArray = if (jsonString.trim().startsWith("{")) {
                 val jsonObj = org.json.JSONObject(jsonString)
                 jsonObj.optJSONArray("lstCalif")
@@ -205,7 +199,6 @@ class SaveToLocalDbWorker(
                 val nombreMateria = obj.optString("Observaciones", clvMateria)
                 val grupo = obj.optString("Grupo", obj.optString("grupo", ""))
 
-                // Extraer calificaciones de cada unidad (U1, U2, U3, etc. o C1, C2, C3, etc.)
                 for (u in 1..10) {
                     var calStr = obj.optString("U$u", "")
                     if (calStr.isEmpty() || calStr == "null") {

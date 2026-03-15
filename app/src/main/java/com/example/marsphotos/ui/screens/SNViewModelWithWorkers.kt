@@ -1,7 +1,3 @@
-/*
- * SNViewModel con WorkManager
- * Implementa sincronización en segundo plano usando Workers
- */
 @file:OptIn(InternalSerializationApi::class)
 
 package com.example.marsphotos.ui.screens
