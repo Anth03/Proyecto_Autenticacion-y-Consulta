@@ -138,7 +138,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .then(saveWorkRequest)
             .enqueue()
 
-        return syncWorkRequest.id
+        // Retornar el ID del SEGUNDO worker para que el ViewModel espere
+        // hasta que los datos ya estén guardados en la BD antes de cargarlos
+        return saveWorkRequest.id
     }
 
     override fun startCargaAcademicaSync(matricula: String): java.util.UUID {
@@ -170,7 +172,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .then(saveWorkRequest)
             .enqueue()
 
-        return syncWorkRequest.id
+        return saveWorkRequest.id
     }
 
     override fun startKardexSync(matricula: String, lineamiento: Int): java.util.UUID {
@@ -203,7 +205,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .then(saveWorkRequest)
             .enqueue()
 
-        return syncWorkRequest.id
+        return saveWorkRequest.id
     }
 
     override fun startCalifUnidadesSync(matricula: String): java.util.UUID {
@@ -235,7 +237,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .then(saveWorkRequest)
             .enqueue()
 
-        return syncWorkRequest.id
+        return saveWorkRequest.id
     }
 
     override fun startCalifFinalSync(matricula: String, modEducativo: Int): java.util.UUID {
@@ -268,6 +270,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .then(saveWorkRequest)
             .enqueue()
 
-        return syncWorkRequest.id
+        return saveWorkRequest.id
     }
 }

@@ -1,4 +1,4 @@
-package com.example.sicenetclient
+  package com.example.sicenetclient
 
 import android.content.ContentValues
 import android.database.Cursor

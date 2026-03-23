@@ -82,6 +82,45 @@ class SaveToLocalDbWorker(
         }
     }
 
+    private fun org.json.JSONObject.optStringAny(vararg keys: String): String {
+        for (key in keys) {
+            if (!has(key)) continue
+            val value = opt(key)
+            if (value == null || value == org.json.JSONObject.NULL) continue
+            val text = value.toString().trim()
+            if (text.isNotEmpty() && !text.equals("null", ignoreCase = true)) {
+                return text
+            }
+        }
+        return ""
+    }
+
+    private fun org.json.JSONObject.optIntAny(vararg keys: String): Int {
+        for (key in keys) {
+            if (!has(key)) continue
+            val value = opt(key)
+            if (value == null || value == org.json.JSONObject.NULL) continue
+            when (value) {
+                is Number -> return value.toInt()
+                is String -> value.trim().toIntOrNull()?.let { return it }
+            }
+        }
+        return 0
+    }
+
+    private fun org.json.JSONObject.optDoubleAny(vararg keys: String): Double {
+        for (key in keys) {
+            if (!has(key)) continue
+            val value = opt(key)
+            if (value == null || value == org.json.JSONObject.NULL) continue
+            when (value) {
+                is Number -> return value.toDouble()
+                is String -> value.trim().toDoubleOrNull()?.let { return it }
+            }
+        }
+        return 0.0
+    }
+
     // Funciones helper para parsear los JSON de SICENET y convertir a entidades
     private fun parseCargaAcademica(jsonString: String, matricula: String): List<CargaAcademicaEntity> {
         return try {
@@ -95,6 +134,7 @@ class SaveToLocalDbWorker(
                 val jsonObj = org.json.JSONObject(jsonString)
                 jsonObj.optJSONArray("lstCarga")
                     ?: jsonObj.optJSONArray("Carga")
+                    ?: jsonObj.optJSONArray("carga")
                     ?: org.json.JSONArray()
             } else {
                 org.json.JSONArray(jsonString)
@@ -104,17 +144,32 @@ class SaveToLocalDbWorker(
 
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
+
+                // Log de claves disponibles (solo primer elemento)
+                if (i == 0) {
+                    val keys = obj.keys().asSequence().toList()
+                    Log.d(TAG, "CargaAcademica - claves disponibles: $keys")
+                }
+
                 items.add(
                     CargaAcademicaEntity(
                         matricula = matricula,
-                        clvOficial = obj.optString("clvOficial", obj.optString("ClvOficial", "")),
-                        materia = obj.optString("Materia", obj.optString("materia", "")),
-                        grupo = obj.optString("Grupo", obj.optString("grupo", "")),
-                        creditos = obj.optInt("C", obj.optInt("Creditos", 0)),
-                        docente = obj.optString("Docente", obj.optString("docente", "")),
-                        observaciones = obj.optString("Observaciones", ""),
-                        estadoMateria = obj.optInt("EstadoMateria", 0),
-                        semestre = obj.optInt("Semestre", obj.optInt("semestre", 0))
+                        clvOficial = obj.optStringAny(
+                            "clvOficial", "ClvOficial", "ClvMat", "ClvOfiMat",
+                            "clave", "Clave", "clvMat"
+                        ),
+                        materia = obj.optStringAny("Materia", "materia", "NomMat", "nombreMateria"),
+                        grupo = obj.optStringAny("Grupo", "grupo"),
+                        creditos = obj.optIntAny("C", "Creditos", "creditos", "Cdts", "cred"),
+                        docente = obj.optStringAny(
+                            "Docente", "docente", "nomDocente", "NomDocente",
+                            "profesor", "Profesor", "nombreDocente"
+                        ),
+                        observaciones = obj.optStringAny("Observaciones", "observaciones", "obs"),
+                        estadoMateria = obj.optIntAny("EstadoMateria", "estadoMateria", "estado"),
+                        semestre = obj.optIntAny(
+                            "Semestre", "semestre", "SemActual", "semActual", "sem"
+                        )
                     )
                 )
             }
@@ -147,20 +202,31 @@ class SaveToLocalDbWorker(
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
 
-                val semestre = obj.optString("S1", "0").toIntOrNull() ?: 0
-                val periodo = "${obj.optString("P1", "")} ${obj.optString("A1", "")}"
+                // Log de claves disponibles (solo para el primer elemento)
+                if (i == 0) {
+                    val keys = obj.keys().asSequence().toList()
+                    Log.d(TAG, "Kardex - claves disponibles: $keys")
+                }
+
+                val semestre = obj.optIntAny("S1", "S2", "S3", "Semestre")
+                val periodo = listOf(
+                    obj.optStringAny("P1", "P2", "P3", "Periodo"),
+                    obj.optStringAny("A1", "A2", "A3", "Anio")
+                ).filter { it.isNotBlank() }.joinToString(" ")
 
                 items.add(
                     KardexEntity(
                         matricula = matricula,
-                        clvOficial = obj.optString("ClvOfiMat", obj.optString("ClvMat", "")),
-                        materia = obj.optString("Materia", ""),
+                        clvOficial = obj.optStringAny("ClvOfiMat", "ClvMat", "clvOficial"),
+                        materia = obj.optStringAny("Materia", "materia"),
                         semestre = semestre,
-                        creditos = obj.optInt("Cdts", 0),
-                        calificacion = obj.optInt("Calif", 0).toString(),
-                        acreditacion = obj.optString("Acred", ""),
+                        creditos = obj.optIntAny("Cdts", "Creditos", "creditos"),
+                        calificacion = obj.optStringAny("Calif", "calif").ifBlank {
+                            obj.optIntAny("Calif", "calif").takeIf { it != 0 }?.toString() ?: ""
+                        },
+                        acreditacion = obj.optStringAny("Acred", "acreditacion", "acreditado"),
                         periodo = periodo.trim(),
-                        observaciones = ""
+                        observaciones = obj.optStringAny("Observaciones", "observaciones")
                     )
                 )
             }
@@ -195,14 +261,20 @@ class SaveToLocalDbWorker(
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
 
-                val clvMateria = obj.optString("Materia", obj.optString("materia", ""))
-                val nombreMateria = obj.optString("Observaciones", clvMateria)
-                val grupo = obj.optString("Grupo", obj.optString("grupo", ""))
+                // Log de claves disponibles (solo primer elemento)
+                if (i == 0) {
+                    val keys = obj.keys().asSequence().toList()
+                    Log.d(TAG, "CalifUnidades - claves disponibles: $keys")
+                }
+
+                val clvMateria = obj.optStringAny("ClvMat", "ClvOfiMat", "clvOficial", "Materia", "materia")
+                val nombreMateria = obj.optStringAny("Materia", "materia", "NomMat", "nombreMateria").ifBlank { clvMateria }
+                val grupo = obj.optStringAny("Grupo", "grupo")
 
                 for (u in 1..10) {
-                    var calStr = obj.optString("U$u", "")
+                    var calStr = obj.optStringAny("U$u")
                     if (calStr.isEmpty() || calStr == "null") {
-                        calStr = obj.optString("C$u", "")
+                        calStr = obj.optStringAny("C$u")
                     }
 
                     if (calStr.isNotEmpty() && calStr != "null" && calStr != "--") {
@@ -212,11 +284,11 @@ class SaveToLocalDbWorker(
                                 CalificacionUnidadEntity(
                                     matricula = matricula,
                                     clvOficial = clvMateria,
-                                    materia = if (nombreMateria.isNotEmpty()) nombreMateria else clvMateria,
+                                    materia = nombreMateria,
                                     unidad = u,
                                     calificacion = cal,
-                                    fecha = "",
-                                    observaciones = if (grupo.isNotEmpty()) "Grupo: $grupo" else ""
+                                    fecha = obj.optStringAny("Fecha$u", "fecha$u", "Fecha"),
+                                    observaciones = if (grupo.isNotEmpty()) "Grupo: $grupo" else obj.optStringAny("Observaciones", "observaciones")
                                 )
                             )
                         }
@@ -244,6 +316,8 @@ class SaveToLocalDbWorker(
             val jsonArray = if (jsonString.trim().startsWith("{")) {
                 val jsonObj = org.json.JSONObject(jsonString)
                 jsonObj.optJSONArray("lstFinal")
+                    ?: jsonObj.optJSONArray("lstCargaCalif")
+                    ?: jsonObj.optJSONArray("lstCalif")
                     ?: jsonObj.optJSONArray("Calificaciones")
                     ?: org.json.JSONArray()
             } else {
@@ -255,17 +329,45 @@ class SaveToLocalDbWorker(
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
 
+                // Log de claves disponibles (solo para el primer elemento)
+                if (i == 0) {
+                    val keys = obj.keys().asSequence().toList()
+                    Log.d(TAG, "CalifFinal - claves disponibles: $keys")
+                }
+
+                // Calificacion: intentar múltiples variantes
+                val calStr = obj.optStringAny("calif", "Calif", "calFinal", "califFinal", "calificacion", "Calificacion")
+                val calificacion = calStr.ifBlank {
+                    val calNum = obj.optDoubleAny("calif", "Calif", "calFinal", "califFinal", "calificacion")
+                    if (calNum != 0.0) calNum.toString() else calStr
+                }
+
+                // Periodo: combinar P1+A1 si están disponibles
+                val p1 = obj.optStringAny("P1", "P2", "periodo", "Periodo", "tipo")
+                val a1 = obj.optStringAny("A1", "A2", "anio", "Anio")
+                val periodo = when {
+                    p1.isNotBlank() && a1.isNotBlank() -> "$p1 $a1"
+                    p1.isNotBlank() -> p1
+                    else -> ""
+                }
+
                 items.add(
                     CalificacionFinalEntity(
                         matricula = matricula,
-                        clvOficial = obj.optString("clvMat", obj.optString("ClvMat", "")),
-                        materia = obj.optString("materia", obj.optString("Materia", "")),
-                        grupo = obj.optString("grupo", obj.optString("Grupo", "")),
-                        calificacion = obj.optString("calif", obj.optInt("Calif", 0).toString()),
-                        acreditacion = obj.optString("acreditado", obj.optString("Acred", "")),
-                        periodo = obj.optString("tipo", obj.optString("Periodo", "")),
-                        creditos = obj.optInt("C", obj.optInt("Cdts", 0)),
-                        observaciones = obj.optString("Observaciones", "")
+                        clvOficial = obj.optStringAny(
+                            "clvMat", "ClvMat", "ClvOfiMat", "clvOficial",
+                            "clave", "Clave", "clv"
+                        ),
+                        materia = obj.optStringAny("materia", "Materia", "NomMat", "nombreMateria"),
+                        grupo = obj.optStringAny("grupo", "Grupo"),
+                        calificacion = calificacion,
+                        acreditacion = obj.optStringAny(
+                            "acreditado", "Acred", "acreditacion",
+                            "acred", "tipoAcred", "tipo_acred", "tipoExamen"
+                        ),
+                        periodo = periodo,
+                        creditos = obj.optIntAny("C", "Cdts", "Creditos", "creditos", "cred", "cdts"),
+                        observaciones = obj.optStringAny("Observaciones", "observaciones", "obs")
                     )
                 )
             }

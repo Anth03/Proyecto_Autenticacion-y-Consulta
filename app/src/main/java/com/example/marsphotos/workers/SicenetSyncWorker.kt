@@ -8,11 +8,18 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.marsphotos.MarsPhotosApplication
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class SicenetSyncWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+    }
 
     companion object {
         const val KEY_MATRICULA = "MATRICULA"
@@ -118,6 +125,6 @@ class SicenetSyncWorker(
 
     // Helper para convertir ProfileStudent a JSON
     private fun com.example.marsphotos.model.ProfileStudent.toJson(): String {
-        return """{"matricula":"$matricula","nombre":"$nombre","carrera":"$carrera","especialidad":"$especialidad","semestre":$semestre,"creditosAcumulados":$creditosAcumulados,"creditosActuales":$creditosActuales,"lineamiento":$lineamiento,"fechaReins":"$fechaReins","estatus":"$estatus","modEducativo":$modEducativo,"inscrito":$inscrito,"adeudo":$adeudo,"adeudoDescripcion":"$adeudoDescripcion","urlFoto":"$urlFoto"}"""
+        return json.encodeToString(this)
     }
 }
