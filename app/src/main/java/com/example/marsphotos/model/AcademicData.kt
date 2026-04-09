@@ -1,7 +1,9 @@
 package com.example.marsphotos.model
 
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 
+@InternalSerializationApi
 /**
  * Modelo para una materia en la carga académica
  */
@@ -17,6 +19,7 @@ data class CargaAcademica(
     val semestre: Int = 0
 )
 
+@InternalSerializationApi
 /**
  * Modelo para una materia en el kardex
  */
@@ -32,6 +35,7 @@ data class Kardex(
     val observaciones: String = ""
 )
 
+@InternalSerializationApi
 /**
  * Modelo para kardex con promedio
  */
@@ -42,6 +46,7 @@ data class KardexConPromedio(
     val creditosAcumulados: Int = 0
 )
 
+@InternalSerializationApi
 /**
  * Modelo para calificaciones por unidad
  */
@@ -55,6 +60,7 @@ data class CalificacionUnidad(
     val observaciones: String = ""
 )
 
+@InternalSerializationApi
 /**
  * Modelo para calificación final
  */

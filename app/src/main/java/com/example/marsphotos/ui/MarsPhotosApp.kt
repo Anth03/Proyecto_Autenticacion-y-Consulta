@@ -27,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marsphotos.R
-import com.example.marsphotos.ui.screens.*
+import com.example.marsphotos.ui.screens.SNUiState
+import com.example.marsphotos.ui.screens.SNViewModelWithWorkers
+import com.example.marsphotos.ui.screens.LoginScreen
+import com.example.marsphotos.ui.screens.ProfileScreen
+import com.example.marsphotos.ui.screens.CargaAcademicaScreen
+import com.example.marsphotos.ui.screens.KardexScreen
+import com.example.marsphotos.ui.screens.CalifUnidadesScreen
+import com.example.marsphotos.ui.screens.CalifFinalScreen
 import kotlinx.serialization.InternalSerializationApi
 
 enum class SicenetScreen {
@@ -50,7 +56,8 @@ enum class SicenetScreen {
 
 @Composable
 fun MarsPhotosApp() {
-    val snViewModel: SNViewModel = viewModel(factory = SNViewModel.Factory)
+    // Usar el ViewModel con WorkManager para sincronización en segundo plano
+    val snViewModel: SNViewModelWithWorkers = viewModel(factory = SNViewModelWithWorkers.Factory)
     var currentScreen by remember { mutableStateOf(SicenetScreen.Login) }
     var currentProfile by remember { mutableStateOf<com.example.marsphotos.model.ProfileStudent?>(null) }
 
@@ -70,20 +77,13 @@ fun MarsPhotosApp() {
                             LoginScreen(
                                 snUiState = snViewModel.snUiState,
                                 onLoginClick = { matricula, password ->
+                                    // Usa WorkManager para login + perfil (Punto 2a)
                                     snViewModel.login(matricula, password)
                                 }
                             )
                         }
-                        is SNUiState.LoginSuccess -> {
-                            LaunchedEffect(Unit) {
-                                snViewModel.getPerfilAcademico()
-                            }
-                            LoginScreen(
-                                snUiState = snViewModel.snUiState,
-                                onLoginClick = { _, _ -> }
-                            )
-                        }
                         is SNUiState.ProfileSuccess -> {
+                            // El Worker completó y el perfil se cargó de BD local
                             currentProfile = state.profile
                             currentScreen = SicenetScreen.Profile
                         }
@@ -108,23 +108,25 @@ fun MarsPhotosApp() {
                             currentProfile = null
                         },
                         onCargaAcademicaClick = {
-                            currentProfile?.let {
-                                snViewModel.getCargaAcademica()
-                                currentScreen = SicenetScreen.CargaAcademica
-                            }
+                            // Usa WorkManager para carga académica (Punto 2b)
+                            snViewModel.getCargaAcademica()
+                            currentScreen = SicenetScreen.CargaAcademica
                         },
                         onKardexClick = {
                             currentProfile?.let {
+                                // Usa WorkManager para kardex (Punto 2b)
                                 snViewModel.getKardex(it.lineamiento)
                                 currentScreen = SicenetScreen.Kardex
                             }
                         },
                         onCalifUnidadesClick = {
+                            // Usa WorkManager para calificaciones unidades (Punto 2b)
                             snViewModel.getCalifUnidades()
                             currentScreen = SicenetScreen.CalifUnidades
                         },
                         onCalifFinalClick = {
                             currentProfile?.let {
+                                // Usa WorkManager para calificaciones finales (Punto 2b)
                                 snViewModel.getCalifFinal(it.modEducativo)
                                 currentScreen = SicenetScreen.CalifFinal
                             }

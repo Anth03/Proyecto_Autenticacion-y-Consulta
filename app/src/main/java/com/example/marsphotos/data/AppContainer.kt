@@ -35,11 +35,15 @@ interface AppContainer {
     val localSNRepository: LocalSNRepository
     val workManager: WorkManager
 
-    /**
-     * Inicia la sincronización de datos de SICENET usando WorkManager
-     * Retorna el ID único del trabajo para monitoreo
-     */
-    fun startSicenetSync(matricula: String, password: String): Operation
+    fun startLoginAndProfileSync(matricula: String, password: String): java.util.UUID
+
+    fun startCargaAcademicaSync(matricula: String): java.util.UUID
+
+    fun startKardexSync(matricula: String, lineamiento: Int): java.util.UUID
+
+    fun startCalifUnidadesSync(matricula: String): java.util.UUID
+
+    fun startCalifFinalSync(matricula: String, modEducativo: Int): java.util.UUID
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -99,15 +103,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         WorkManager.getInstance(context)
     }
 
-    /**
-     * Inicia la cadena de Workers para sincronizar datos de SICENET
-     *
-     * Worker 1 (SicenetSyncWorker): Consulta datos del servicio web
-     * Worker 2 (SaveToLocalDbWorker): Almacena datos en la BD local
-     *
-     * Los workers se ejecutan secuencialmente y solo si hay conexión a internet
-     */
-    override fun startSicenetSync(matricula: String, password: String): Operation {
+    override fun startLoginAndProfileSync(matricula: String, password: String): java.util.UUID {
         // Constraints: Solo ejecutar si hay conexión a internet
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -116,30 +112,164 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         // Datos de entrada para el primer worker
         val inputData = workDataOf(
             SicenetSyncWorker.KEY_MATRICULA to matricula,
-            SicenetSyncWorker.KEY_PASSWORD to password
+            SicenetSyncWorker.KEY_PASSWORD to password,
+            SicenetSyncWorker.KEY_QUERY_TYPE to "LOGIN_AND_PROFILE"
         )
 
-        // Worker 1: Consultar datos de SICENET
+        // Worker 1: Consultar login y perfil de SICENET
         val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
             .setConstraints(constraints)
             .setInputData(inputData)
-            .addTag("sicenet_sync")
+            .addTag("sicenet_login_profile")
             .build()
 
         // Worker 2: Guardar en base de datos local
         val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
-            .addTag("sicenet_save")
+            .addTag("sicenet_save_profile")
             .build()
 
         // Encadenar los workers: syncWorkRequest -> saveWorkRequest
-        // El segundo worker recibe los datos de salida del primero
-        return workManager
+        workManager
             .beginUniqueWork(
-                "sicenet_sync_chain",
-                ExistingWorkPolicy.REPLACE, // Reemplazar trabajos existentes
+                "sicenet_login_profile_chain",
+                ExistingWorkPolicy.REPLACE,
                 syncWorkRequest
             )
             .then(saveWorkRequest)
             .enqueue()
+
+        // Retornar el ID del SEGUNDO worker para que el ViewModel espere
+        // hasta que los datos ya estén guardados en la BD antes de cargarlos
+        return saveWorkRequest.id
+    }
+
+    override fun startCargaAcademicaSync(matricula: String): java.util.UUID {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val inputData = workDataOf(
+            SicenetSyncWorker.KEY_MATRICULA to matricula,
+            SicenetSyncWorker.KEY_QUERY_TYPE to "CARGA_ACADEMICA"
+        )
+
+        val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .addTag("sicenet_carga")
+            .build()
+
+        val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
+            .addTag("sicenet_save_carga")
+            .build()
+
+        workManager
+            .beginUniqueWork(
+                "sicenet_carga_chain",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
+            .then(saveWorkRequest)
+            .enqueue()
+
+        return saveWorkRequest.id
+    }
+
+    override fun startKardexSync(matricula: String, lineamiento: Int): java.util.UUID {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val inputData = workDataOf(
+            SicenetSyncWorker.KEY_MATRICULA to matricula,
+            SicenetSyncWorker.KEY_QUERY_TYPE to "KARDEX",
+            SicenetSyncWorker.KEY_LINEAMIENTO to lineamiento
+        )
+
+        val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .addTag("sicenet_kardex")
+            .build()
+
+        val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
+            .addTag("sicenet_save_kardex")
+            .build()
+
+        workManager
+            .beginUniqueWork(
+                "sicenet_kardex_chain",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
+            .then(saveWorkRequest)
+            .enqueue()
+
+        return saveWorkRequest.id
+    }
+
+    override fun startCalifUnidadesSync(matricula: String): java.util.UUID {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val inputData = workDataOf(
+            SicenetSyncWorker.KEY_MATRICULA to matricula,
+            SicenetSyncWorker.KEY_QUERY_TYPE to "CALIF_UNIDADES"
+        )
+
+        val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .addTag("sicenet_calif_unidades")
+            .build()
+
+        val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
+            .addTag("sicenet_save_calif_unidades")
+            .build()
+
+        workManager
+            .beginUniqueWork(
+                "sicenet_calif_unidades_chain",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
+            .then(saveWorkRequest)
+            .enqueue()
+
+        return saveWorkRequest.id
+    }
+
+    override fun startCalifFinalSync(matricula: String, modEducativo: Int): java.util.UUID {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val inputData = workDataOf(
+            SicenetSyncWorker.KEY_MATRICULA to matricula,
+            SicenetSyncWorker.KEY_QUERY_TYPE to "CALIF_FINAL",
+            SicenetSyncWorker.KEY_MOD_EDUCATIVO to modEducativo
+        )
+
+        val syncWorkRequest = OneTimeWorkRequestBuilder<SicenetSyncWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputData)
+            .addTag("sicenet_calif_final")
+            .build()
+
+        val saveWorkRequest = OneTimeWorkRequestBuilder<SaveToLocalDbWorker>()
+            .addTag("sicenet_save_calif_final")
+            .build()
+
+        workManager
+            .beginUniqueWork(
+                "sicenet_calif_final_chain",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
+            .then(saveWorkRequest)
+            .enqueue()
+
+        return saveWorkRequest.id
     }
 }
